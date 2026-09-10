@@ -1,0 +1,563 @@
+openapi: 3.0.3
+info:
+  title: Admin Service API
+  description: >
+    Admin-only endpoints for dashboard analytics, order management, and user
+    oversight. All operations require a valid JWT with ADMIN role.
+  version: 1.0.0
+  contact:
+    name: Platform Team
+
+servers:
+  - url: http://localhost:8085
+    description: Local development
+  - url: http://api-gateway:8080
+    description: Via API Gateway
+
+tags:
+  - name: Dashboard
+    description: Admin dashboard metrics and summaries
+  - name: Admin Orders
+    description: Admin order oversight and status management
+  - name: Admin Users
+    description: Admin user management
+
+paths:
+  /api/v1/admin/dashboard:
+    get:
+      tags: [Dashboard]
+      operationId: getDashboard
+      summary: Get admin dashboard overview
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+              example:
+                totalOrders: 1243
+                totalRevenue: 89750.50
+                totalUsers: 356
+                totalProducts: 142
+                recentOrders:
+                  - id: 42
+                    orderNumber: "ORD-20260910-00042"
+                    customerEmail: "jane.doe@example.com"
+                    totalAmount: 69.97
+                    status: PLACED
+                    orderDate: "2026-09-10T14:30:00"
+                  - id: 41
+                    orderNumber: "ORD-20260910-00041"
+                    customerEmail: "bob@example.com"
+                    totalAmount: 149.95
+                    status: CONFIRMED
+                    orderDate: "2026-09-10T13:15:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/orders:
+    get:
+      tags: [Admin Orders]
+      operationId: listAdminOrders
+      summary: List orders with optional status filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/OrderStatus'
+          description: Filter by order status
+          example: PLACED
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated order list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminOrders'
+              example:
+                content:
+                  - id: 42
+                    orderNumber: "ORD-20260910-00042"
+                    customerEmail: "jane.doe@example.com"
+                    totalAmount: 69.97
+                    status: PLACED
+                    orderDate: "2026-09-10T14:30:00"
+                  - id: 41
+                    orderNumber: "ORD-20260910-00041"
+                    customerEmail: "bob@example.com"
+                    totalAmount: 149.95
+                    status: CONFIRMED
+                    orderDate: "2026-09-10T13:15:00"
+                totalElements: 1243
+                totalPages: 63
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/orders/{id}:
+    get:
+      tags: [Admin Orders]
+      operationId: getAdminOrder
+      summary: Get order details with full item breakdown
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderDetail'
+              example:
+                id: 42
+                orderNumber: "ORD-20260910-00042"
+                customerEmail: "jane.doe@example.com"
+                totalAmount: 69.97
+                status: PLACED
+                orderDate: "2026-09-10T14:30:00"
+                items:
+                  - productId: 10
+                    productName: "Wireless Mouse"
+                    quantity: 2
+                    unitPrice: 29.99
+                    totalPrice: 59.98
+                  - productId: 25
+                    productName: "USB-C Cable"
+                    quantity: 1
+                    unitPrice: 9.99
+                    totalPrice: 9.99
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags: [Admin Orders]
+      operationId: updateOrderStatus
+      summary: Update an order's status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+            example:
+              status: CONFIRMED
+      responses:
+        '200':
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminOrderStatusResponse'
+              example:
+                status: CONFIRMED
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/users:
+    get:
+      tags: [Admin Users]
+      operationId: listAdminUsers
+      summary: List users with optional search
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by email or full name
+          example: jane
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminUsers'
+              example:
+                content:
+                  - id: 1
+                    email: "jane.doe@example.com"
+                    fullName: "Jane Doe"
+                    role: USER
+                    orderCount: 5
+                    createdAt: "2026-09-01T10:00:00"
+                  - id: 2
+                    email: "bob@example.com"
+                    fullName: "Bob Smith"
+                    role: USER
+                    orderCount: 12
+                    createdAt: "2026-08-15T08:00:00"
+                totalElements: 356
+                totalPages: 18
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/admin/users/{id}:
+    get:
+      tags: [Admin Users]
+      operationId: getAdminUser
+      summary: Get user details including order count
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserDetail'
+              example:
+                id: 1
+                email: "jane.doe@example.com"
+                fullName: "Jane Doe"
+                phoneNumber: "+1-555-0123"
+                role: USER
+                orderCount: 5
+                createdAt: "2026-09-01T10:00:00"
+                lastLoginAt: "2026-09-10T14:25:00"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token with ADMIN role claim required
+
+  parameters:
+    OrderId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: Order ID
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: User ID
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    SizeParam:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  schemas:
+    OrderStatus:
+      type: string
+      enum: [PLACED, CONFIRMED, SHIPPED, DELIVERED, CANCELLED]
+
+    DashboardResponse:
+      type: object
+      properties:
+        totalOrders:
+          type: integer
+          format: int64
+        totalRevenue:
+          type: number
+          format: decimal
+        totalUsers:
+          type: integer
+          format: int64
+        totalProducts:
+          type: integer
+          format: int64
+        recentOrders:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/AdminOrderSummary'
+
+    AdminOrderSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+        customerEmail:
+          type: string
+          format: email
+        totalAmount:
+          type: number
+          format: decimal
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        orderDate:
+          type: string
+          format: date-time
+
+    AdminOrderDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        orderNumber:
+          type: string
+        customerEmail:
+          type: string
+          format: email
+        totalAmount:
+          type: number
+          format: decimal
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        orderDate:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrderItem'
+
+    AdminOrderItem:
+      type: object
+      properties:
+        productId:
+          type: integer
+          format: int64
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: decimal
+        totalPrice:
+          type: number
+          format: decimal
+
+    UpdateOrderStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+
+    AdminOrderStatusResponse:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+
+    AdminUserSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        orderCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+
+    AdminUserDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        role:
+          type: string
+          enum: [USER, ADMIN]
+        orderCount:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    PaginatedAdminOrders:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminOrderSummary'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    PaginatedAdminUsers:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminUserSummary'
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 400
+            error: Bad Request
+            message: "Invalid order status transition"
+            path: /api/v1/admin/orders/42/status
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 401
+            error: Unauthorized
+            message: "JWT token is missing or expired"
+            path: /api/v1/admin/dashboard
+
+    Forbidden:
+      description: Admin role required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 403
+            error: Forbidden
+            message: "Access denied. Admin role required."
+            path: /api/v1/admin/dashboard
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 404
+            error: Not Found
+            message: "Order not found"
+            path: /api/v1/admin/orders/999
+
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 500
+            error: Internal Server Error
+            message: "An unexpected error occurred"
+            path: /api/v1/admin/dashboard

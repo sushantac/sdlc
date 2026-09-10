@@ -1,0 +1,483 @@
+openapi: 3.0.3
+info:
+  title: Product Service API
+  description: Product catalog and category management for the e-commerce platform. Read operations are public; write operations require JWT authentication.
+  version: 1.0.0
+  contact:
+    name: Platform Team
+
+servers:
+  - url: http://localhost:8083
+    description: Local development
+  - url: http://api-gateway:8080
+    description: Via API Gateway
+
+tags:
+  - name: Products
+    description: Product catalog CRUD and search
+  - name: Categories
+    description: Product category management
+
+paths:
+  /api/v1/products:
+    get:
+      tags: [Products]
+      operationId: listProducts
+      summary: Search and list products with filtering and pagination
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Free-text search across product name and description
+          example: wireless mouse
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category name
+          example: Electronics
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            format: decimal
+            minimum: 0
+          description: Minimum price filter (inclusive)
+          example: 10.00
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            format: decimal
+            minimum: 0
+          description: Maximum price filter (inclusive)
+          example: 50.00
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [price, -price, name, -name, createdAt, -createdAt]
+          description: Sort field. Prefix with - for descending.
+          example: "-price"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Zero-based page index
+        - name: size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Page size
+      responses:
+        '200':
+          description: Paginated product list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProducts'
+              example:
+                content:
+                  - id: 10
+                    name: "Wireless Mouse"
+                    description: "Ergonomic wireless mouse with USB receiver"
+                    price: 29.99
+                    stockQuantity: 150
+                    categories:
+                      - id: 1
+                        name: "Electronics"
+                  - id: 11
+                    name: "Mechanical Keyboard"
+                    description: "RGB mechanical keyboard with Cherry MX switches"
+                    price: 89.99
+                    stockQuantity: 75
+                    categories:
+                      - id: 1
+                        name: "Electronics"
+                page: 0
+                size: 20
+                totalElements: 142
+                totalPages: 8
+                last: false
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Products]
+      operationId: createProduct
+      summary: Create a new product
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+            example:
+              name: "Wireless Mouse"
+              description: "Ergonomic wireless mouse with USB receiver"
+              price: 29.99
+              stockQuantity: 150
+              categoryIds: [1, 3]
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+              example:
+                id: 10
+                name: "Wireless Mouse"
+                description: "Ergonomic wireless mouse with USB receiver"
+                price: 29.99
+                stockQuantity: 150
+                categories:
+                  - id: 1
+                    name: "Electronics"
+                  - id: 3
+                    name: "Accessories"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/products/{id}:
+    get:
+      tags: [Products]
+      operationId: getProduct
+      summary: Get a product by ID
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+              example:
+                id: 10
+                name: "Wireless Mouse"
+                description: "Ergonomic wireless mouse with USB receiver"
+                price: 29.99
+                stockQuantity: 150
+                categories:
+                  - id: 1
+                    name: "Electronics"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags: [Products]
+      operationId: updateProduct
+      summary: Update an existing product
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductRequest'
+            example:
+              name: "Wireless Mouse Pro"
+              description: "Ergonomic wireless mouse with USB-C receiver"
+              price: 34.99
+              stockQuantity: 120
+              categoryIds: [1, 3]
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+              example:
+                id: 10
+                name: "Wireless Mouse Pro"
+                description: "Ergonomic wireless mouse with USB-C receiver"
+                price: 34.99
+                stockQuantity: 120
+                categories:
+                  - id: 1
+                    name: "Electronics"
+                  - id: 3
+                    name: "Accessories"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Products]
+      operationId: deleteProduct
+      summary: Delete a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '204':
+          description: Product deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/categories:
+    get:
+      tags: [Categories]
+      operationId: listCategories
+      summary: List all product categories
+      responses:
+        '200':
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryDto'
+              example:
+                - id: 1
+                  name: "Electronics"
+                  description: "Electronic devices and gadgets"
+                - id: 2
+                  name: "Clothing"
+                  description: "Apparel and accessories"
+                - id: 3
+                  name: "Accessories"
+                  description: "Computer and device accessories"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Categories]
+      operationId: createCategory
+      summary: Create a new category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+            example:
+              name: "Home & Kitchen"
+              description: "Home appliances and kitchen essentials"
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryDto'
+              example:
+                id: 4
+                name: "Home & Kitchen"
+                description: "Home appliances and kitchen essentials"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token required for write operations
+
+  parameters:
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: Unique identifier of the product
+
+  schemas:
+    ProductRequest:
+      type: object
+      required: [name, price, stockQuantity]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+        stockQuantity:
+          type: integer
+          minimum: 0
+        categoryIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+
+    ProductResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+        stockQuantity:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryDto'
+
+    CategoryDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        description:
+          type: string
+
+    CreateCategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 500
+
+    PaginatedProducts:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductResponse'
+        page:
+          type: integer
+          description: Current page number (zero-based)
+        size:
+          type: integer
+          description: Page size
+        totalElements:
+          type: integer
+          format: int64
+          description: Total number of matching products
+        totalPages:
+          type: integer
+          description: Total number of pages
+        last:
+          type: boolean
+          description: Whether this is the last page
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 400
+            error: Bad Request
+            message: "Validation failed: price must be greater than 0"
+            path: /api/v1/products
+
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 401
+            error: Unauthorized
+            message: "JWT token is missing or expired"
+            path: /api/v1/products
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 404
+            error: Not Found
+            message: "Product not found"
+            path: /api/v1/products/999
+
+    InternalServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            timestamp: "2026-09-10T14:30:00Z"
+            status: 500
+            error: Internal Server Error
+            message: "An unexpected error occurred"
+            path: /api/v1/products
