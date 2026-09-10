@@ -1,0 +1,406 @@
+name: ecommerce-platform
+
+services:
+  # ===== CORE APP (profiles: backend, full) =====
+  api-gateway:
+    profiles: ["backend", "full"]
+    build: ../api-gateway
+    ports: ["8080:8080"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-900}
+      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION:-604800}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-100}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_started }
+      auth-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  auth-service:
+    profiles: ["backend", "full"]
+    build: ../auth-service
+    ports: ["8081:8081"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-900}
+      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION:-604800}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  cart-service:
+    profiles: ["backend", "full"]
+    build: ../cart-service
+    ports: ["8082:8082"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      PRODUCT_SERVICE_URL: ${PRODUCT_SERVICE_URL:-http://product-service:8083}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_started }
+      product-service: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  product-service:
+    profiles: ["backend", "full"]
+    build: ../product-service
+    ports: ["8083:8083"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  order-api:
+    profiles: ["backend", "full"]
+    build: ../order-management-api
+    ports: ["8084:8084"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      kafka: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  admin-service:
+    profiles: ["backend", "full"]
+    build: ../admin-service
+    ports: ["8085:8085"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  frontend:
+    profiles: ["backend", "full"]
+    build: ../e-commerce-frontend
+    ports: ["3000:3000"]
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080/api/v1}
+      NODE_ENV: ${NODE_ENV:-development}
+    depends_on:
+      api-gateway: { condition: service_healthy }
+
+  # ===== INFRASTRUCTURE (no profile — always up) =====
+  postgres:
+    image: pgvector/pg16
+    ports: ["5432:5432"]
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=128MB
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecommerce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    volumes: [redis_data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: apache/kafka:3.7.0
+    ports: ["9092:9092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_RETENTION_HOURS: 168
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports: ["16686:16686", "14268:14268"]
+
+  # ===== SDLC TOOLS (profiles: sdlc, full) =====
+  plane-frontend:
+    profiles: ["sdlc", "full"]
+    image: makeplane/plane-frontend:latest
+    ports: ["3001:3000"]
+    depends_on: [plane-backend]
+
+  plane-backend:
+    profiles: ["sdlc", "full"]
+    image: makeplane/plane-backend:latest
+    ports: ["8000:8000"]
+    depends_on: [plane-postgres, plane-redis]
+
+  plane-worker:
+    profiles: ["sdlc", "full"]
+    image: makeplane/plane-backend:latest
+    command: celery -A plane worker -l info
+    depends_on: [plane-redis, plane-postgres]
+
+  plane-postgres:
+    profiles: ["sdlc", "full"]
+    image: postgres:15-alpine
+    volumes: [plane_pg_data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: plane
+      POSTGRES_USER: plane
+      POSTGRES_PASSWORD: ${PLANE_DB_PASSWORD:-plane_secret}
+
+  plane-redis:
+    profiles: ["sdlc", "full"]
+    image: redis:7-alpine
+    volumes: [plane_redis_data:/data]
+
+  bookstack:
+    profiles: ["sdlc", "full"]
+    image: lscr.io/linuxserver/bookstack:latest
+    ports: ["6000:80"]
+    depends_on: [bookstack-db]
+    environment:
+      DB_HOST: bookstack-db
+      DB_DATABASE: bookstack
+      DB_USERNAME: bookstack
+      DB_PASSWORD: ${BOOKSTACK_DB_PASSWORD:-bookstack_secret}
+      APP_URL: http://localhost:6000
+
+  bookstack-db:
+    profiles: ["sdlc", "full"]
+    image: mysql:8.0
+    volumes: [bookstack_db_data:/var/lib/mysql]
+    environment:
+      MYSQL_ROOT_PASSWORD: root_secret
+      MYSQL_DATABASE: bookstack
+      MYSQL_USER: bookstack
+      MYSQL_PASSWORD: ${BOOKSTACK_DB_PASSWORD:-bookstack_secret}
+
+  # ===== MONITORING (profiles: monitoring, full) =====
+  prometheus:
+    profiles: ["monitoring", "full"]
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts/alerts.yml
+      - prometheus_data:/prometheus
+
+  grafana:
+    profiles: ["monitoring", "full"]
+    image: grafana/grafana:latest
+    ports: ["3002:3000"]
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+
+  loki:
+    profiles: ["monitoring", "full"]
+    image: grafana/loki:latest
+    ports: ["3100:3100"]
+    volumes:
+      - ./monitoring/loki/config.yml:/etc/loki/config.yml
+
+  promtail:
+    profiles: ["monitoring", "full"]
+    image: grafana/promtail:latest
+    volumes:
+      - /var/log:/var/log
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./monitoring/promtail/config.yml:/etc/promtail/config.yml
+
+  alertmanager:
+    profiles: ["monitoring", "full"]
+    image: prom/alertmanager:latest
+    ports: ["9093:9093"]
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+
+  redis-exporter:
+    profiles: ["monitoring", "full"]
+    image: prometheuscommunity/redis-exporter:v1.31.0
+    ports: ["9121:9121"]
+    environment:
+      REDIS_ADDR: redis:6379
+
+  # ===== QA TOOLS (profiles: qa, full) =====
+  sonarqube:
+    profiles: ["qa", "full"]
+    image: sonarqube:community
+    ports: ["9000:9000"]
+    volumes: [sonarqube_data:/opt/sonarqube/data]
+
+  zap:
+    profiles: ["qa", "full"]
+    image: ghcr.io/zaproxy/zaproxy:stable
+    ports: ["8090:8090"]
+
+  # ===== DESIGN TOOLS (profiles: design, full) =====
+  penpot-frontend:
+    profiles: ["design", "full"]
+    image: penpotapp/frontend:latest
+    ports: ["9001:80"]
+    depends_on: [penpot-backend]
+
+  penpot-backend:
+    profiles: ["design", "full"]
+    image: penpotapp/backend:latest
+    depends_on: [penpot-exporter, penpot-postgres, penpot-redis]
+
+  penpot-exporter:
+    profiles: ["design", "full"]
+    image: penpotapp/exporter:latest
+
+  penpot-postgres:
+    profiles: ["design", "full"]
+    image: postgres:15-alpine
+    volumes: [penpot_pg_data:/var/lib/postgresql/data]
+    environment:
+      POSTGRES_DB: penpot
+      POSTGRES_USER: penpot
+      POSTGRES_PASSWORD: ${PENPOT_DB_PASSWORD:-penpot_secret}
+
+  penpot-redis:
+    profiles: ["design", "full"]
+    image: redis:7-alpine
+    volumes: [penpot_redis_data:/data]
+
+volumes:
+  postgres_data:
+  redis_data:
+  plane_pg_data:
+  plane_redis_data:
+  bookstack_db_data:
+  prometheus_data:
+  grafana_data:
+  sonarqube_data:
+  penpot_pg_data:
+  penpot_redis_data:
