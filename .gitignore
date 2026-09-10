@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+target/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Secrets
+*.pem
+*.key
+.secrets.baseline
+
+# Docker
+*.pid
+
+# OS
+.DS_Store
+
+# OS Metadata
+Thumbs.db

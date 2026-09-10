@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+BOOKSTACK_URL="${BOOKSTACK_URL:-http://localhost:6000}"
+
+echo "=== BookStack (Confluence alternative) ==="
+echo "URL: ${BOOKSTACK_URL}"
+echo "Default login: admin@admin.com / password (set at first run)"
+echo ""
+echo "Create these books/shelves to hold the SDLC docs:"
+echo "  Shelf: 'E-Commerce SDLC'"
+echo "    Book:  '01 - Project Charter & Requirements'"
+echo "    Book:  '02 - Design & Architecture'"
+echo "       - Architecture Decision Records"
+echo "       - System Design"
+echo "       - Design Specs + Wireframes"
+echo "    Book:  '03 - API & Integration'"
+echo "       - API Specs (auth/cart/product/order/admin)"
+echo "       - Service Communication (REST + Kafka events)"
+echo "    Book:  '04 - Engineering Guides'"
+echo "       - Developer Guide"
+echo "       - Test Plan"
+echo "    Book:  '05 - Operations'"
+echo "       - Deployment Runbook"
+echo "       - Monitoring Runbook"
+echo "       - CICD Pipeline"
+echo "    Book:  '06 - Process'"
+echo "       - Risk Register"
+echo "       - Sprint Retrospectives"
+echo ""
+echo "Suggestion: publish content copied from sdlc/docs/* to keep a single source of truth (sync docs/ back to BookStack)."
+
+echo "=== Done (manual steps above) ==="

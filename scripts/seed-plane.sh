@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+PLANE_URL="${PLANE_URL:-http://localhost:8000}"
+PLANE_EMAIL="${PLANE_EMAIL:-admin@ecommerce.local}"
+PLANE_PASSWORD="${PLANE_PASSWORD:-admin123}"
+
+echo "=== Plane (JIRA alternative) ==="
+echo "URL: ${PLANE_URL}"
+echo ""
+echo "This script expects the Plane API to be up. Steps to complete manually:"
+echo "  1. Log in at ${PLANE_URL} with ${PLANE_EMAIL} / (initial setup)"
+echo "  2. Create a Workspace: 'ecommerce-sdlc'"
+echo "  3. Create a Project per sprint: Sprint 0, Sprint 1, Sprint 2, Sprint 3"
+echo "  4. Create Cycles matching the 4-week sprint schedule"
+echo "  5. Create modules: backend, frontend, devops, qa, docs"
+echo "  6. Add Epics: Foundation, Backend Core, Backend Extended, Frontend, QA"
+echo "  7. Link issues to the SDLC plan (planning/SDLC-PLAN-v2.0.md sections)"
+echo ""
+echo "Suggested issue backlog (from SDLC plan):"
+echo "  - [Epic: Foundation] Write SDLC documentation set (15 docs)"
+echo "  - [Epic: Foundation] Create design tokens + wireframes (14 screens)"
+echo "  - [Epic: Backend Core] API Gateway: routes, JWT, rate limiting, CORS"
+echo "  - [Epic: Backend Core] Auth Service: register/login/refresh/profile"
+echo "  - [Epic: Backend Core] Cart Service: CRUD + stock validation"
+echo "  - [Epic: Backend Core] Product Service: CRUD + search/filter/pagination"
+echo "  - [Epic: Backend Extended] Admin Service: dashboard + Kafka consumers"
+echo "  - [Epic: Backend Extended] Order API: Kafka integration (consumer+producers)"
+echo "  - [Epic: Frontend] 14 pages (auth, storefront, checkout, admin)"
+echo "  - [Epic: QA] Unit/integration/E2E/security/perf suites per plan section 10"
+
+echo ""
+echo "=== Done (manual steps above) ==="

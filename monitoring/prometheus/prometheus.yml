@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+
+scrape_configs:
+  - job_name: 'api-gateway'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['api-gateway:8080']
+
+  - job_name: 'auth-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['auth-service:8081']
+
+  - job_name: 'cart-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['cart-service:8082']
+
+  - job_name: 'product-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['product-service:8083']
+
+  - job_name: 'order-api'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['order-api:8084']
+
+  - job_name: 'admin-service'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['admin-service:8085']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
