@@ -3,7 +3,7 @@
 # ===== SETUP =====
 setup:
 	@echo "Creating service repositories..."
-	@mkdir -p ../api-gateway ../auth-service ../cart-service ../product-service ../admin-service ../e-commerce-frontend
+	@mkdir -p ../api-gateway ../auth-service ../cart-service ../product-service ../admin-service ../review-service ../e-commerce-frontend
 
 # ===== DOCKER =====
 dev:
@@ -35,6 +35,7 @@ build:
 	cd ../product-service && ./mvnw clean package -DskipTests
 	cd ../order-management-api && ./mvnw clean package -DskipTests
 	cd ../admin-service && ./mvnw clean package -DskipTests
+	cd ../review-service && ./mvnw clean package -DskipTests
 	cd ../e-commerce-frontend && npm run build
 
 # ===== TEST =====
@@ -48,6 +49,7 @@ test-backend:
 	cd ../product-service && ./mvnw test
 	cd ../order-management-api && ./mvnw test
 	cd ../admin-service && ./mvnw test
+	cd ../review-service && ./mvnw test
 
 test-frontend:
 	cd ../e-commerce-frontend && npm run test
@@ -63,6 +65,7 @@ lint:
 	cd ../cart-service && ./mvnw checkstyle:check
 	cd ../product-service && ./mvnw checkstyle:check
 	cd ../admin-service && ./mvnw checkstyle:check
+	cd ../review-service && ./mvnw spotless:check
 
 # ===== QA =====
 qa-security:
