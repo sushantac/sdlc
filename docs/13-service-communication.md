@@ -89,6 +89,21 @@ These are the public API contracts as seen by the frontend. All routed through A
 | GET | `/api/v1/admin/users` | `search, page, size` | `{content[], totalElements}` | JWT + ADMIN |
 | GET | `/api/v1/admin/users/{id}` | — | `{user details, orderCount}` | JWT + ADMIN |
 
+### 2.6 Review Service (via Gateway)
+
+| Method | Endpoint | Query Params | Response | Auth Required |
+|--------|----------|-------------|----------|---------------|
+| GET | `/api/v1/products/{productId}/reviews` | `page, size` | `{content[], totalElements, totalPages}` | No |
+| GET | `/api/v1/products/{productId}/reviews/summary` | — | `{productId, averageRating, totalReviews, ratingDistribution}` | No |
+| GET | `/api/v1/reviews/my` | `productId, page, size` | `{content[], totalElements, totalPages}` | JWT |
+| POST | `/api/v1/reviews` | — | `{id, productId, userId, rating, title, body, verifiedPurchase, approved}` | JWT |
+| GET | `/api/v1/reviews/{id}` | — | `{id, productId, userId, rating, title, body, verifiedPurchase, approved}` | No |
+| PUT | `/api/v1/reviews/{id}` | — | `{id, productId, userId, rating, title, body, verifiedPurchase, approved}` | JWT (owner) |
+| DELETE | `/api/v1/reviews/{id}` | — | 204 No Content | JWT (owner) |
+| GET | `/api/v1/admin/reviews` | `status, page, size` | `{content[], totalElements, totalPages}` | JWT + ADMIN |
+| POST | `/api/v1/admin/reviews/{id}/approve` | — | `{id, productId, userId, rating, title, body, verifiedPurchase, approved}` | JWT + ADMIN |
+| POST | `/api/v1/admin/reviews/{id}/reject` | — | `{id, productId, userId, rating, title, body, verifiedPurchase, approved}` | JWT + ADMIN |
+
 ---
 
 ## 3. Kafka Topics — Full Specification
@@ -103,8 +118,9 @@ These are the public API contracts as seen by the frontend. All routed through A
 | `product.catalog.created` | product-service | cart-service | 3 | 1 | 7 days |
 | `product.catalog.updated` | product-service | cart-service | 3 | 1 | 7 days |
 | `product.catalog.deleted` | product-service | cart-service | 3 | 1 | 7 days |
-| `order.placed` | order-management-api | admin-service, cart-service | 3 | 1 | 7 days |
+| `order.placed` | order-management-api | admin-service, cart-service, review-service | 3 | 1 | 7 days |
 | `order.status.changed` | order-management-api | admin-service | 3 | 1 | 7 days |
+| `review.created` | review-service | (none yet) | 3 | 1 | 7 days |
 
 ### 3.2 Event Payloads
 
@@ -212,6 +228,24 @@ These are the public API contracts as seen by the frontend. All routed through A
   "oldStatus": "string",
   "newStatus": "string",
   "changedAt": "2026-09-10T14:30:00Z"
+}
+```
+
+#### `review.created`
+
+Published by review-service when a review is approved by an admin.
+
+```json
+{
+  "eventId": "uuid",
+  "reviewId": "long",
+  "productId": "long",
+  "userId": "long",
+  "rating": "int (1-5)",
+  "title": "string | null",
+  "body": "string | null",
+  "verifiedPurchase": "boolean",
+  "occurredAt": "2026-09-10T14:30:00Z"
 }
 ```
 
@@ -398,6 +432,13 @@ spring:
           uri: http://cart-service:8082
           predicates:
             - Path=/api/v1/cart/**
+
+        - id: review-service
+          uri: http://review-service:8086
+          predicates:
+            - Path=/api/v1/reviews/**,/api/v1/products/*/reviews/**,/api/v1/admin/reviews/**
+          # NOTE: declared BEFORE product-service and admin-service routes so the
+          # more specific review paths win over /api/v1/products/** and /api/v1/admin/**
 
         - id: product-service-read
           uri: http://product-service:8083

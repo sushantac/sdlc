@@ -130,7 +130,7 @@ services:
 
   order-api:
     profiles: ["backend", "full"]
-    build: ../order-management-api
+    image: ecommerce-platform-order-api:latest
     ports: ["8084:8084"]
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
@@ -185,6 +185,31 @@ services:
       retries: 3
       start_period: 60s
 
+  review-service:
+    profiles: ["backend", "full"]
+    build: ../review-service
+    ports: ["8086:8086"]
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-ecommerce}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secret}
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-256-bit-secret-in-production}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-internal-service-key-12345}
+      KAFKA_BOOTSTRAP_SERVERS: ${KAFKA_BOOTSTRAP_SERVERS:-kafka:9092}
+      JAEGER_COLLECTOR_ENDPOINT: ${JAEGER_COLLECTOR_ENDPOINT:-http://jaeger:14268}
+    depends_on:
+      postgres: { condition: service_healthy }
+      kafka: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8086/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   frontend:
     profiles: ["backend", "full"]
     build: ../e-commerce-frontend
@@ -197,7 +222,7 @@ services:
 
   # ===== INFRASTRUCTURE (no profile — always up) =====
   postgres:
-    image: pgvector/pg16
+    image: pgvector/pgvector:pg16
     ports: ["5432:5432"]
     command: >
       postgres
@@ -241,6 +266,13 @@ services:
       CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 168
+      # Single-broker KRaft: internal topics must use RF=1 or __consumer_offsets
+      # can never be created and ALL consumer groups stall (verified 2026-09-11)
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
 
   jaeger:
     image: jaegertracing/all-in-one:1.57
@@ -404,3 +436,8 @@ volumes:
   sonarqube_data:
   penpot_pg_data:
   penpot_redis_data:
+
+networks:
+  default:
+    driver: bridge
+    name: ecommerce-platform_default
